@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css">
+  </head>
+
+  <body>
+
+    <div class="container" style="padding-top: 50px;">
+      <div class="jumbotron text-center">
+
+        <h1>BPM: <span id="bpm_text">0</span></h1>
+
+        <div class="row" style="padding: 10px;">
+          <button id="get_bpm" type="button" class="btn btn-primary">GET</button>
+        </div>
+
+        <div class="row" style="padding: 10px;">
+          <div class="input-group" style="width: 200px; margin: auto;">
+            <input id="bpm_input"  type="text" class="form-control">
+            <div class="input-group-btn">
+              <button id="put_bpm" type="button" class="btn btn-default">PUT</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="well text-left" style="margin-top: 30px;">
+          <h4>Statistics</h4>
+          <div class="row center-block" style="padding: 10px; padding-bottom: 20px;">
+            <h5>Minimum BPM: <span id="min_bpm">0</span></h5>
+            <h5>Maximum BPM: <span id="max_bpm">0</span></h5>
+
+          </div>
+          <div class="row center-block">
+            <button  id="reset" type="button" class="btn btn-danger">RESET</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script type="text/javascript" src="js/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="js/socket.io.js"></script>
+    <script type="text/javascript">
+      $(function() {
+        // Create a new WebSocket
+        var audio = new Audio('data/click.wav');
+        var h1 = $('h1');
+        var original_color = h1.css("background-color");
+        var intervalTimer ;
+        var socket = io();
+        
+        // When the html element with the ID get_bpm is clicked, send a message
+        $('#get_bpm').on('click', function() {
+          // get-bpm does not need to send any parameters
+          socket.emit('get-bpm', {});
+        });
+
+        // When the bpm response is received from the server, render the result
+        socket.on('bpm', function(data) {
+          console.log('bpm', data);
+          var interval = 60000/parseInt(data.value) ;
+            var blink=document.getElementById("bpm_text").val;     
+          // myVar = setInterval(alertFunc, 3000);  
+
+          if(intervalTimer!=null){
+           clearInterval(intervalTimer);
+           console.log('cleared interval timer');
+          }
+
+          intervalTimer = setInterval(function(){ 
+            audio.play();
+            h1.css("background-color","green");
+            setTimeout(function myFunc(){h1.css("background-color",original_color);}, 5)
+    
+          }, interval);
+          // Set the html tag value for the coresponding ID to the data
+          $('#bpm_text').html(data.value);
+        });
+
+     
+
+          socket.on('notification', function(data) {
+          console.log('Notification is:', data.value);
+          // Set the html tag value for the coresponding ID to the data
+
+          var path = data.value.path;
+          var payload = data.value.payload;
+          console.log('path is', path);
+          console.log('payload is', payload);
+
+
+          if (path.indexOf('5900')!=-1) {
+            console.log(' updating 5900 ');
+           console.log('bpm', data);
+            var interval = 60000/parseInt(payload) ;
+
+          if(intervalTimer!=null){
+           clearInterval(intervalTimer);
+           console.log('cleared interval timer');
+          }
+
+          intervalTimer = setInterval(function(){ 
+            audio.play();
+            h1.css("background-color","blue");
+            setTimeout(function myFunc(){h1.css("background-color",original_color);}, 5)
+    
+          }, interval);
+          // Set the html tag value for the coresponding ID to the data
+          $('#bpm_text').html(payload);
+
+          } else if (path.indexOf('5601')!=-1){
+            console.log(' updating 5601 ');
+            $('#min_bpm').html(payload);  
+
+          } else if (path.indexOf('5602')!=-1){
+            console.log(' updating 5602 ');
+            $('#max_bpm').html(payload); 
+
+          }
+          
+
+
+        });
+
+
+        socket.on('min', function(data)           //Response from server on Min BPM
+        {
+          console.log('min', data);
+          $('#min_bpm').html(data.value);
+        });
+
+        socket.on('max', function(data)           //Response from server on max BPM
+        {
+          console.log('max', data);
+          $('#max_bpm').html(data.value);
+      
+        });
+
+
+        $('#put_bpm').on('click', function()              //Put new BPM value
+         {    
+            //document.getElementById('bpm_text').value;
+           var bpmval=$('#bpm_input').val();
+          // console.log(bpmval);
+          socket.emit('bpm_put', {value:bpmval});
+          });
+
+        
+         $('#reset').on('click', function()             //Reset Min/Max BPM
+         {
+          
+          //var reset=0;
+        //  console.log(reset);
+           socket.emit('reset_minmax', {});
+
+           $('#min_bpm').html('0');
+           $('#max_bpm').html('0');
+
+        });
+
+       // socket.on('putbpm', function(data){
+   // $('#put_bpm').text(data.put_bpm);
+  });
+
+  
+    </script>
+
+  </body>
+
+</html>
+
+  </body>
+</html>
